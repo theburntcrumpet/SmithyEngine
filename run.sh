@@ -3,4 +3,4 @@ set -e
 
 # Build if needed, then run
 ./build.sh "${1:-Debug}"
-./build/bin/MyGame
+./build/bin/basic_game

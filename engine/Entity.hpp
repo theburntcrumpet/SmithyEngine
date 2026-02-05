@@ -11,6 +11,7 @@ namespace Engine {
     class EntityManager;
     class CollisionManager;
     class SceneManager;
+    class GameMeta;
 
     class Entity {
     private:
@@ -24,6 +25,7 @@ namespace Engine {
         EntityManager* m_entityManager = nullptr;
         CollisionManager* m_collisionManager = nullptr;
         SceneManager* m_sceneManager = nullptr;
+        GameMeta* m_gameMeta = nullptr;
 
     public:
         Entity() = default;
@@ -45,6 +47,7 @@ namespace Engine {
         void SetEntityManager(EntityManager* entityManager) { m_entityManager = entityManager; }
         void SetCollisionManager(CollisionManager* collisionManager) { m_collisionManager = collisionManager; }
         void SetSceneManager(SceneManager* sceneManager) { m_sceneManager = sceneManager; }
+        void SetGameMeta(GameMeta* gameMeta) { m_gameMeta = gameMeta; }
 
         // Lifecycle methods - override in derived classes
         virtual void Init() {}

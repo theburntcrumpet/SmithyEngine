@@ -11,4 +11,4 @@ cmake -G Ninja -DCMAKE_BUILD_TYPE="$BUILD_TYPE" ..
 ninja
 
 echo ""
-echo "Build complete: $BUILD_DIR/bin/MyGame"
+echo "Build complete: $BUILD_DIR/bin/basic_game"

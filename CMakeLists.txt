@@ -3,8 +3,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Define the project name, version, and language.
-# PROJECT_NAME variable is set to "MyGame" and can be used throughout.
-project(MyGame VERSION 1.0.0 LANGUAGES CXX)
+project(Smithy VERSION 1.0.0 LANGUAGES CXX)
 
 # Use C++17 standard. REQUIRED means it will fail if the compiler doesn't support it.
 set(CMAKE_CXX_STANDARD 17)
@@ -14,116 +13,143 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # This is used by IDEs and tools like clangd for code intelligence.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Control where built files end up:
-# - Executables go to build/bin/
-# - Shared libraries (.so/.dll) go to build/lib/
-# - Static libraries (.a/.lib) go to build/lib/
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
 # Find SDL2 on the system. REQUIRED means CMake will error if not found.
-# This sets variables like SDL2_INCLUDE_DIRS and SDL2_LIBRARIES.
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
 
-# Automatically find all source files under src/.
-# GLOB_RECURSE searches subdirectories too (e.g., src/entities/*.cpp).
-# CONFIGURE_DEPENDS makes CMake check for new/removed files on each build.
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-    src/*.cpp
+# ============================================================================
+# Smithy Engine (header-only library)
+# ============================================================================
+
+# Collect all engine headers
+file(GLOB_RECURSE ENGINE_HEADERS CONFIGURE_DEPENDS
+    engine/*.hpp
+    engine/*.h
 )
 
-file(GLOB_RECURSE HEADERS CONFIGURE_DEPENDS
-    src/*.hpp
-    src/*.h
-)
+# Create an INTERFACE library (header-only)
+add_library(smithy INTERFACE)
 
-# Create the executable target from our source files.
-# Headers are included so they show up in IDE project views.
-add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-
-# Tell the compiler where to find header files.
-# PRIVATE means these paths are only used when building this target,
-# not by anything that links against it.
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
+# Engine include path - consumers include as "engine/Entity.hpp" etc.
+target_include_directories(smithy INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${SDL2_INCLUDE_DIRS}
 )
 
-# Link SDL2 libraries to our executable.
-# On Linux this links libSDL2.so, on Windows it links SDL2.lib.
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL2_LIBRARIES} SDL2_image::SDL2_image)
+# Engine dependencies
+target_link_libraries(smithy INTERFACE
+    ${SDL2_LIBRARIES}
+    SDL2_image::SDL2_image
+)
 
-# Platform-specific configuration for Windows builds
-if(WIN32)
-    # In Release builds, don't show a console window behind the game.
-    # WIN32_EXECUTABLE makes it a GUI application instead of a console app.
-    if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        set_target_properties(${PROJECT_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
+# ============================================================================
+# Examples and Tests (only when building Smithy directly)
+# ============================================================================
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    # Control where built files end up
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+    # ========================================================================
+    # Examples
+    # ========================================================================
+
+    # Basic Game Example
+    file(GLOB_RECURSE BASIC_GAME_SOURCES CONFIGURE_DEPENDS
+        examples/basic_game/*.cpp
+    )
+    file(GLOB_RECURSE BASIC_GAME_HEADERS CONFIGURE_DEPENDS
+        examples/basic_game/*.hpp
+        examples/basic_game/*.h
+    )
+
+    add_executable(basic_game ${BASIC_GAME_SOURCES} ${BASIC_GAME_HEADERS})
+
+    target_include_directories(basic_game PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/basic_game
+    )
+
+    target_link_libraries(basic_game PRIVATE smithy)
+
+    # Platform-specific configuration for Windows builds
+    if(WIN32)
+        if(CMAKE_BUILD_TYPE STREQUAL "Release")
+            set_target_properties(basic_game PROPERTIES WIN32_EXECUTABLE TRUE)
+        endif()
+
+        add_custom_command(TARGET basic_game POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL2::SDL2>
+            $<TARGET_FILE_DIR:basic_game>
+        )
     endif()
 
-    # Automatically copy SDL2.dll next to the .exe after building.
-    # Windows needs DLLs in the same directory as the executable (or in PATH).
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:SDL2::SDL2>
-        $<TARGET_FILE_DIR:${PROJECT_NAME}>
-    )
-endif()
-
-# Enable compiler warnings to catch potential bugs.
-# MSVC (Visual Studio) uses /W4, GCC/Clang use -Wall -Wextra -Wpedantic.
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
-else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-
-# ============================================================================
-# Testing with Catch2
-# ============================================================================
-
-# FetchContent allows downloading dependencies at configure time
-include(FetchContent)
-
-# Declare Catch2 as a dependency - it will be downloaded automatically
-FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.2
-)
-
-# Make Catch2 available (downloads if needed, then adds to build)
-FetchContent_MakeAvailable(Catch2)
-
-# Find all test source files
-file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
-    tests/*.cpp
-)
-
-# Only create test target if we have test files
-if(TEST_SOURCES)
-    # Create test executable
-    add_executable(${PROJECT_NAME}_tests ${TEST_SOURCES})
-
-    # Test executable needs access to our source headers
-    target_include_directories(${PROJECT_NAME}_tests PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-    )
-
-    # Link Catch2 to the test executable
-    target_link_libraries(${PROJECT_NAME}_tests PRIVATE Catch2::Catch2WithMain)
-
-    # Apply same warning flags to tests
+    # Enable compiler warnings
     if(MSVC)
-        target_compile_options(${PROJECT_NAME}_tests PRIVATE /W4)
+        target_compile_options(basic_game PRIVATE /W4)
     else()
-        target_compile_options(${PROJECT_NAME}_tests PRIVATE -Wall -Wextra -Wpedantic)
+        target_compile_options(basic_game PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 
-    # Enable CTest integration
-    include(CTest)
-    include(Catch)
-    catch_discover_tests(${PROJECT_NAME}_tests)
+    # Pong Example
+    file(GLOB_RECURSE PONG_SOURCES CONFIGURE_DEPENDS
+        examples/pong/*.cpp
+    )
+    file(GLOB_RECURSE PONG_HEADERS CONFIGURE_DEPENDS
+        examples/pong/*.hpp
+        examples/pong/*.h
+    )
+
+    add_executable(pong ${PONG_SOURCES} ${PONG_HEADERS})
+
+    target_include_directories(pong PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/pong
+    )
+
+    target_link_libraries(pong PRIVATE smithy)
+
+    if(MSVC)
+        target_compile_options(pong PRIVATE /W4)
+    else()
+        target_compile_options(pong PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    # ========================================================================
+    # Testing with Catch2
+    # ========================================================================
+
+    include(FetchContent)
+
+    FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v3.5.2
+    )
+
+    FetchContent_MakeAvailable(Catch2)
+
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
+        tests/*.cpp
+    )
+
+    if(TEST_SOURCES)
+        add_executable(smithy_tests ${TEST_SOURCES})
+
+        target_link_libraries(smithy_tests PRIVATE
+            smithy
+            Catch2::Catch2WithMain
+        )
+
+        if(MSVC)
+            target_compile_options(smithy_tests PRIVATE /W4)
+        else()
+            target_compile_options(smithy_tests PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+
+        include(CTest)
+        include(Catch)
+        catch_discover_tests(smithy_tests)
+    endif()
 endif()
