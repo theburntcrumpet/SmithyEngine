@@ -4,10 +4,10 @@
 #include "engine/CollisionRectangle.hpp"
 #include "engine/Entity.hpp"
 #include "engine/GameMeta.hpp"
+#include "engine/AudioManager.hpp"
 #include "engine/Rectangle.hpp"
 #include "engine/Vector2.hpp"
 #include <cmath>
-#include <iostream>
 
 class Ball : public Engine::Entity, public Engine::ICollidable {
 private:
@@ -60,14 +60,14 @@ public:
         if (pos.GetX() < 0) {
             // Ball went off left side - AI scores
             m_aiScore++;
-            std::cout << "Score - Player: " << m_playerScore << " | AI: " << m_aiScore << std::endl;
+            if (m_audioManager) m_audioManager->Play("bong", 0);
             Reset();
             return;
         }
         if (pos.GetX() > worldWidth - m_size) {
             // Ball went off right side - Player scores
             m_playerScore++;
-            std::cout << "Score - Player: " << m_playerScore << " | AI: " << m_aiScore << std::endl;
+            if (m_audioManager) m_audioManager->Play("bong", 0);
             Reset();
             return;
         }
@@ -96,6 +96,9 @@ public:
                 m_speed *= 1.05f;
                 float len = std::sqrt(m_velocity.GetX() * m_velocity.GetX() + m_velocity.GetY() * m_velocity.GetY());
                 m_velocity = m_velocity * (m_speed / len);
+
+                // Play paddle hit sound
+                if (m_audioManager) m_audioManager->Play("bing", 0);
                 break;
             }
         }
@@ -146,5 +149,7 @@ public:
 
     Engine::Vector2f GetVelocity() const { return m_velocity; }
     float GetSize() const { return m_size; }
+    int GetPlayerScore() const { return m_playerScore; }
+    int GetAIScore() const { return m_aiScore; }
 };
 #endif
