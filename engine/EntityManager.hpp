@@ -12,6 +12,7 @@ namespace Engine {
     // Forward declarations
     class CollisionManager;
     class GameMeta;
+    class AudioManager;
     class EntityManager {
     private:
         std::vector<std::unique_ptr<Entity>> m_entities;
@@ -109,13 +110,14 @@ namespace Engine {
         }
 
         // Initialize all entities (injects dependencies, then calls Init)
-        void InitAll(Renderer& renderer, CollisionManager* collisionManager = nullptr, GameMeta* gameMeta = nullptr) {
+        void InitAll(Renderer& renderer, CollisionManager* collisionManager = nullptr, GameMeta* gameMeta = nullptr, AudioManager* audioManager = nullptr) {
             for (auto& entity : m_entities) {
                 if (entity) {
                     entity->SetRenderer(&renderer);
                     entity->SetEntityManager(this);
                     entity->SetCollisionManager(collisionManager);
                     entity->SetGameMeta(gameMeta);
+                    entity->SetAudioManager(audioManager);
                     entity->Init();
                 }
             }

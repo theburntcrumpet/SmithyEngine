@@ -16,6 +16,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Find SDL2 on the system. REQUIRED means CMake will error if not found.
 find_package(SDL2 REQUIRED)
 find_package(SDL2_image REQUIRED)
+find_package(SDL2_mixer REQUIRED)
 
 # ============================================================================
 # Smithy Engine (header-only library)
@@ -40,6 +41,7 @@ target_include_directories(smithy INTERFACE
 target_link_libraries(smithy INTERFACE
     ${SDL2_LIBRARIES}
     SDL2_image::SDL2_image
+    SDL2_mixer::SDL2_mixer
 )
 
 # ============================================================================
@@ -115,6 +117,36 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     else()
         target_compile_options(pong PRIVATE -Wall -Wextra -Wpedantic)
     endif()
+
+    # Audio Test Example
+    file(GLOB_RECURSE AUDIO_TEST_SOURCES CONFIGURE_DEPENDS
+        examples/audio_test/*.cpp
+    )
+    file(GLOB_RECURSE AUDIO_TEST_HEADERS CONFIGURE_DEPENDS
+        examples/audio_test/*.hpp
+        examples/audio_test/*.h
+    )
+
+    add_executable(audio_test ${AUDIO_TEST_SOURCES} ${AUDIO_TEST_HEADERS})
+
+    target_include_directories(audio_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/audio_test
+    )
+
+    target_link_libraries(audio_test PRIVATE smithy)
+
+    if(MSVC)
+        target_compile_options(audio_test PRIVATE /W4)
+    else()
+        target_compile_options(audio_test PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+
+    # Copy assets directory to build output
+    add_custom_command(TARGET audio_test POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/audio_test/assets
+        $<TARGET_FILE_DIR:audio_test>/assets
+    )
 
     # ========================================================================
     # Testing with Catch2

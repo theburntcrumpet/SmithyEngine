@@ -10,11 +10,11 @@ Originally started as a cross-platform 2D game skeleton using SDL2 and CMake, th
 # Development tools
 sudo pacman -S base-devel cmake
 
-# SDL2 and SDL2_image for native Linux builds
-sudo pacman -S sdl2 sdl2_image
+# SDL2, SDL2_image, SDL2_mixer for native Linux builds
+sudo pacman -S sdl2 sdl2_image sdl2_mixer
 
 # For cross-compiling to Windows
-sudo pacman -S mingw-w64-gcc mingw-w64-sdl2 mingw-w64-sdl2_image
+sudo pacman -S mingw-w64-gcc mingw-w64-sdl2 mingw-w64-sdl2_image mingw-w64-sdl2_mixer
 ```
 
 ### Linux (Debian/Ubuntu)
@@ -23,8 +23,8 @@ sudo pacman -S mingw-w64-gcc mingw-w64-sdl2 mingw-w64-sdl2_image
 # Development tools
 sudo apt install build-essential cmake
 
-# SDL2 and SDL2_image for native Linux builds
-sudo apt install libsdl2-dev libsdl2-image-dev
+# SDL2, SDL2_image and SDL_mixer for native Linux builds
+sudo apt install libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev
 
 # For cross-compiling to Windows
 sudo apt install mingw-w64
@@ -72,7 +72,7 @@ make
 
 # Copy DLLs next to the executable
 cp /usr/x86_64-w64-mingw32/bin/SDL2.dll bin/
-cp /usr/x86_64-w64-mingw32/bin/SDL2_image.dll bin/
+cp /usr/x86_64-w64-mingw32/bin/SDL2_image.dll bin/ etc etc
 ```
 
 The Windows executable will be at `build-win/bin/MyGame.exe`.
@@ -115,10 +115,9 @@ Add new `.cpp` and `.hpp` files anywhere under `src/` and they'll be automatical
 
 Common SDL2 extension libraries to add:
 
-- **SDL2_mixer**: Play sound effects and music
 - **SDL2_ttf**: Render text with TrueType fonts
 
-To add these, install them (`sdl2_mixer`, `sdl2_ttf` packages) and add to CMakeLists.txt:
+To add these, install them (`sdl2_ttf` packages) and add to CMakeLists.txt:
 
 ```cmake
 find_package(SDL2_mixer REQUIRED)
